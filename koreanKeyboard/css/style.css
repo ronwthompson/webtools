@@ -1,0 +1,53 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  height: 100%;
+}
+
+.key {
+  display: inline-block;
+  margin: 5px 3px;
+  height: 50px;
+  width: 50px;
+  border: 1px solid black;
+  border-radius: 5px;
+}
+
+.language {
+  display: inline-block;
+  height: 50px;
+  width: 200px;
+  border: 2px solid black;
+  border-radius: 2px;
+}
+
+.language:hover {
+  cursor: pointer;
+}
+
+.active {
+  background-color: #5a98fc;
+}
+
+#tab, #backspace { /*total width of one row of keys should be 855px including inner margins*/
+  width: 75px;
+}
+
+#enter {
+  width: 85px;
+}
+
+#capsLock {
+  width: 100px;
+}
+
+#leftShift, #rightShift {
+  width: 122.5px;
+}
+
+#spacebar {
+  width: 855px;
+}
