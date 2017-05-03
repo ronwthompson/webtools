@@ -3,8 +3,19 @@
   margin: 0;
 }
 
+@font-face {
+font-family: koreanFont;
+src: url(../font/koreanfont.ttf);
+}
+
 body {
   height: 100%;
+  font-family: koreanFont;
+  font-size: 3em;
+}
+
+.hidden {
+  display: none;
 }
 
 .key {
