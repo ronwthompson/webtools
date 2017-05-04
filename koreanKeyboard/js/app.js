@@ -1,7 +1,11 @@
 document.getElementById('engSelect').addEventListener("click", function() { //switch between eng to kor keyboards
+    shiftOff();
     document.getElementById('engSelect').classList.add('active');
     document.getElementById('korSelect').classList.remove('active');
-
+    document.getElementById('leftShift').classList.remove('active');
+	document.getElementById('rightShift').classList.remove('active');
+    document.getElementById('capsLock').classList.remove('active');
+	
     var y = document.getElementsByClassName('kor');
     for (var q = 0; q<y.length; q++){
     	y[q].classList.add('hidden');
@@ -14,8 +18,12 @@ document.getElementById('engSelect').addEventListener("click", function() { //sw
 });
 
 document.getElementById('korSelect').addEventListener("click", function() {
+	shiftOff();
     document.getElementById('korSelect').classList.add('active');
     document.getElementById('engSelect').classList.remove('active');
+    document.getElementById('leftShift').classList.remove('active');
+	document.getElementById('rightShift').classList.remove('active');
+    document.getElementById('capsLock').classList.remove('active');
 
     var y = document.getElementsByClassName('eng');
     for (var q = 0; q<y.length; q++){
@@ -57,22 +65,43 @@ function deselect() {
     txtarea.selectionStart = caretPos;
     txtarea.selectionEnd = caretPos;
     txtarea.focus();
+    prevKorChar = [];
 }
 
 function backAtCaret() { //backspace text at cursor location in textarea (or deletes text if text is selected)
     var txtarea = document.getElementById('displayedText');
     var caretPos = txtarea.selectionStart;
 
-    var front = (txtarea.value).substring(0, caretPos-1);
-    var back = (txtarea.value).substring(txtarea.selectionEnd, txtarea.value.length);
-    txtarea.value = front + back;
-    caretPos = caretPos-1;
-    txtarea.selectionStart = caretPos;
-    txtarea.selectionEnd = caretPos;
+    var front;
+    var back;
+
+    if (intKorLetter.length > 0 && checkSelect()) { //if in korean char, backspace just one letter instead of whole char
+    	front = (txtarea.value).substring(0, caretPos);
+    	back = (txtarea.value).substring(txtarea.selectionEnd, txtarea.value.length);
+    	if (prevKorChar.length > 0){
+    		txtarea.value = front + prevKorChar[prevKorChar.length-1] + back;
+    		txtarea.selectionStart = caretPos;
+    		txtarea.selectionEnd = caretPos+1;
+    	} else {
+    		txtarea.value = front + back;
+    		txtarea.selectionStart = caretPos;
+    		txtarea.selectionEnd = caretPos;
+    	}
+    	prevKorChar.splice(prevKorChar.length-1,1);
+    } else {
+    	deselect();
+    	front = (txtarea.value).substring(0, caretPos-1);
+    	back = (txtarea.value).substring(txtarea.selectionEnd, txtarea.value.length);
+    	txtarea.value = front + back;
+	    caretPos = caretPos-1;
+	    txtarea.selectionStart = caretPos;
+	    txtarea.selectionEnd = caretPos;
+    }
     txtarea.focus();
 }
 
 function deleteAtCaret() { //backspace text at cursor location in textarea (or deletes text if text is selected)
+	deselect();
     var txtarea = document.getElementById('displayedText');
     var caretPos = txtarea.selectionStart;
 
@@ -108,61 +137,68 @@ var thirdLetterVowelv2 = ['ㅓ','ㅔ','ㅣ'];
 var doubleContPrelims = ['ㄱ','ㄴ','ㄹ','ㅂ'];
 var doubleContEndings = ['ㅅ','ㅈ','ㅎ','ㄱ','ㅁ','ㅂ','ㅌ','ㅍ','ㅎ'];
 
-var intKorLetter = '';
+var intKorLetter = [];
+var prevKorChar = [];
 
 function addLetterToChar(newLetter) { //adds korean letter to char
 	if (consonants.indexOf(previousChar()) > -1 && consonants.indexOf(newLetter) == -1 && checkSelect() == true) { //move from 1 letter in char to 2 letters in char
 		var firstLetter = (consonants.indexOf(previousChar()))*588;
 		var seccondLetter = (newLetter.charCodeAt(0)-12623)*28;
 		var offset = 44032;
+		prevKorChar.push(previousChar());
 		insertAtCaret(String.fromCharCode(firstLetter+seccondLetter+offset));
 		selectCurrentKor();
-		intKorLetter = newLetter;
-	} else if (((previousChar().charCodeAt(0) - 44032) % 28) == 0 && checkSelect() == true) { //move from 2 letters in char to 3 letters in char (and 3->4 if second and third letter is a vowel)
+		intKorLetter.push(newLetter);
+	} else if (((previousChar().charCodeAt(0) - 44032) % 28) == 0 && previousChar().charCodeAt(0) > 44031 && checkSelect() == true) { //move from 2 letters in char to 3 letters in char (and 3->4 if second and third letter is a vowel)
 		if (thirdLetter.indexOf(newLetter) > -1){ //if const
 			var addLetter = previousChar().charCodeAt(0)+thirdLetter.indexOf(newLetter)+1;
+			prevKorChar.push(previousChar());
 			insertAtCaret(String.fromCharCode(addLetter));
 			selectCurrentKor();
-			intKorLetter = newLetter;
-		} else if ((thirdLetterVowelv1.indexOf(newLetter) > -1 || thirdLetterVowelv2.indexOf(newLetter) > -1) && secondLetterExceps.indexOf(intKorLetter) > -1) { //if vowel exceptions
-			if (secondLetterExceps.indexOf(intKorLetter) == 0 && (newLetter == 'ㅏ' || newLetter == 'ㅐ' || newLetter == 'ㅣ')){ //for ㅗ
+			intKorLetter.push(newLetter);
+		} else if ((thirdLetterVowelv1.indexOf(newLetter) > -1 || thirdLetterVowelv2.indexOf(newLetter) > -1) && secondLetterExceps.indexOf(intKorLetter[intKorLetter.length-1]) > -1) { //if vowel exceptions
+			if (secondLetterExceps.indexOf(intKorLetter[intKorLetter.length-1]) == 0 && (newLetter == 'ㅏ' || newLetter == 'ㅐ' || newLetter == 'ㅣ')){ //for ㅗ
 				var addLetter = previousChar().charCodeAt(0)+(thirdLetterVowelv1.indexOf(newLetter)*28)+28;
+				prevKorChar.push(previousChar());
 				insertAtCaret(String.fromCharCode(addLetter));
 				selectCurrentKor();
-				intKorLetter = newLetter;
-			} else if (secondLetterExceps.indexOf(intKorLetter) == 1 && (newLetter == 'ㅓ' || newLetter == 'ㅔ' || newLetter == 'ㅣ')) { //for ㅜ
+				intKorLetter.push(newLetter);
+			} else if (secondLetterExceps.indexOf(intKorLetter[intKorLetter.length-1]) == 1 && (newLetter == 'ㅓ' || newLetter == 'ㅔ' || newLetter == 'ㅣ')) { //for ㅜ
 				var addLetter = previousChar().charCodeAt(0)+(thirdLetterVowelv2.indexOf(newLetter)*28)+28;
+				prevKorChar.push(previousChar());
 				insertAtCaret(String.fromCharCode(addLetter));
 				selectCurrentKor();
-				intKorLetter = newLetter;
+				intKorLetter.push(newLetter);
 			} else if (intKorLetter == 'ㅡ' && newLetter == 'ㅣ') { //for ㅡ
 				var addLetter = previousChar().charCodeAt(0)+28;
+				prevKorChar.push(previousChar());
 				insertAtCaret(String.fromCharCode(addLetter));
 				selectCurrentKor();
-				intKorLetter = newLetter;
+				intKorLetter.push(newLetter);
 			} else {
+				deselect();
 				insertAtCaret(newLetter);
 				selectCurrentKor();
-				intKorLetter = '';
-				intKorLetter = newLetter;
+				intKorLetter = [];
+				intKorLetter.push(newLetter);
 			}
 		} else {
 			deselect();
 			insertAtCaret(newLetter);
-			intKorLetter = '';
+			intKorLetter = [];
 		}
-	} else if (doubleContPrelims.indexOf(intKorLetter) > -1 && doubleContEndings.indexOf(newLetter) > -1 && checkSelect() == true) { //if last letter is double cons
-		switch (intKorLetter){
+	} else if (doubleContPrelims.indexOf(intKorLetter[intKorLetter.length-1]) > -1 && doubleContEndings.indexOf(newLetter) > -1 && checkSelect() == true && previousChar().charCodeAt(0) > 44031) { //if last letter is double cons
+		switch (intKorLetter[intKorLetter.length-1]){
 			case 'ㄱ':
 				if (newLetter == 'ㅅ') {
 					var addLetter = previousChar().charCodeAt(0)+2;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else {
 					deselect();
 					insertAtCaret(newLetter);
-					intKorLetter = '';
+					intKorLetter = [];
 				}
 				break;
 			case 'ㄴ':
@@ -170,16 +206,16 @@ function addLetterToChar(newLetter) { //adds korean letter to char
 					var addLetter = previousChar().charCodeAt(0)+1;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅎ') {
 					var addLetter = previousChar().charCodeAt(0)+2;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else {
 					deselect();
 					insertAtCaret(newLetter);
-					intKorLetter = '';
+					intKorLetter = [];
 				}
 				break;
 			case 'ㄹ':
@@ -187,41 +223,41 @@ function addLetterToChar(newLetter) { //adds korean letter to char
 					var addLetter = previousChar().charCodeAt(0)+1;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅁ') {
 					var addLetter = previousChar().charCodeAt(0)+2;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅂ') {
 					var addLetter = previousChar().charCodeAt(0)+3;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅅ') {
 					var addLetter = previousChar().charCodeAt(0)+4;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅌ') {
 					var addLetter = previousChar().charCodeAt(0)+5;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅍ') {
 					var addLetter = previousChar().charCodeAt(0)+6;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else if (newLetter == 'ㅎ') {
 					var addLetter = previousChar().charCodeAt(0)+7;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else {
 					deselect();
 					insertAtCaret(newLetter);
-					intKorLetter = '';
+					intKorLetter = [];
 				}
 				break;
 			case 'ㅂ':
@@ -229,24 +265,27 @@ function addLetterToChar(newLetter) { //adds korean letter to char
 					var addLetter = previousChar().charCodeAt(0)+1;
 					insertAtCaret(String.fromCharCode(addLetter));
 					deselect();
-					intKorLetter = '';
+					intKorLetter = [];
 				} else {
 					deselect();
 					insertAtCaret(newLetter);
-					intKorLetter = '';
+					intKorLetter = [];
 				}
 				break;
 		}
 	} else {
 		deselect();
 		insertAtCaret(newLetter);
-		intKorLetter = '';
+		intKorLetter = [];
+		intKorLetter.push(newLetter);
 	}
 }
 
 document.onkeypress = function(e) { //keyboard press listener
 	clickButton(e.key.toLowerCase());
 }
+
+var shiftUp = true;
 
 document.onkeydown = function(e) {
 	switch(e.key){ //for non-print keyboard presses
@@ -263,11 +302,13 @@ document.onkeydown = function(e) {
 			clickButton('	');
 			break;
 		case 'CapsLock':
-			if ((document.getElementById('capsLock').className).indexOf('active') == -1) {
+			if (capsLockOnOff === false) {
 				document.getElementById('capsLock').classList.add('active');
+				capsLockOnOff = true;
 				shiftOn();
 			} else {
 				document.getElementById('capsLock').classList.remove('active');
+				capsLockOnOff = false;
 				shiftOff();
 			};
 			break;
@@ -275,9 +316,13 @@ document.onkeydown = function(e) {
 			clickButton('\n');
 			break;
 		case 'Shift':
-			document.getElementById('leftShift').classList.add('active');
-			document.getElementById('rightShift').classList.add('active');
-			shiftOn();
+			if (shiftOnOff === false && shiftUp === true) {
+				document.getElementById('leftShift').classList.add('active');
+				document.getElementById('rightShift').classList.add('active');
+				shiftOnOff = true;
+				shiftUp = false;
+				shiftOn();
+			};
 			break;
 		case 'Control':
 			console.log('Control');
@@ -290,7 +335,7 @@ document.onkeydown = function(e) {
 		    var caretPos = txtarea.selectionEnd;
 		    if (txtarea.selectionStart != caretPos){
 		    	deselect();
-		    	intKorLetter = '';
+		    	intKorLetter = [];
 		    }
 		    txtarea.selectionStart = caretPos-1;
 		    txtarea.selectionEnd = caretPos-1;
@@ -301,7 +346,7 @@ document.onkeydown = function(e) {
 		    var caretPos = txtarea.selectionEnd;
 		    if (txtarea.selectionStart != caretPos){
 		    	deselect();
-		    	intKorLetter = '';
+		    	intKorLetter = [];
 		    } else {
 		    	txtarea.selectionStart = caretPos+1;
 		    	txtarea.selectionEnd = caretPos+1;
@@ -314,9 +359,11 @@ document.onkeydown = function(e) {
 
 document.onkeyup = function(e) {
 	if (e.key == 'Shift'){
+		shiftOnOff = false;
+		shiftUp = true;
 		document.getElementById('leftShift').classList.remove('active');
 		document.getElementById('rightShift').classList.remove('active');
-		if ((document.getElementById('capsLock').className).indexOf('active') == -1){
+		if (capsLockOnOff === false){
 			shiftOff();
 		}
 	}
@@ -460,10 +507,15 @@ for (var i = 0; i < key.length; i++) { //put a click listener on each key
 	key[i].addEventListener('mousedown', function(){
 											this.classList.add('active');
 											});
-	key[i].addEventListener('mouseup', function(){
-											this.classList.remove('active');
-											});
+	if (key[i].id != 'capsLock' || key[i].id != 'leftShift' || key[i].id != 'rightShift') {
+		key[i].addEventListener('mouseup', function(){
+												this.classList.remove('active');
+												});
+	}
 }
+
+var capsLockOnOff = false;
+var shiftOnOff = false;
 
 function shiftOn () {
 	if ((document.getElementById('engSelect').className).indexOf('active') > -1) { //shift english keyboard display
@@ -555,7 +607,8 @@ function shiftOff () {
 
 function clickButton(buttonId) { //onscreen clicks
 	var charToAdd = '';
-	if (((document.getElementById('capsLock').className).indexOf('active') == -1) && ((document.getElementById('leftShift').className).indexOf('active') == -1)) {
+	if (capsLockOnOff === false && 
+		shiftOnOff === false) {
 		switch(buttonId){ //non-alpha chars with no shift/caps
 			case 'tilda':
 				charToAdd = '`';
@@ -612,13 +665,9 @@ function clickButton(buttonId) { //onscreen clicks
 				charToAdd = '\\';
 				break;
 			case 'capsLock':
-				if ((document.getElementById('capsLock').className).indexOf('active') == -1) {
-					document.getElementById('capsLock').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('capsLock').classList.remove('active');
-					shiftOff();
-				};
+				capsLockOnOff = true;
+				document.getElementById('capsLock').classList.add('active');
+				shiftOn();
 				break;
 			case 'semicolon':
 				charToAdd = ';';
@@ -633,26 +682,16 @@ function clickButton(buttonId) { //onscreen clicks
 				charToAdd = '\n';
 				break;
 			case 'leftShift':
-				if ((document.getElementById('leftShift').className).indexOf('active') == -1) {
-					document.getElementById('leftShift').classList.add('active');
-					document.getElementById('rightShift').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('leftShift').classList.remove('active');
-					document.getElementById('rightShift').classList.remove('active');
-					shiftOff();
-				};
+				shiftOnOff = true;
+				document.getElementById('leftShift').classList.add('active');
+				document.getElementById('rightShift').classList.add('active');
+				shiftOn();
 				break;
 			case 'rightShift':
-				if ((document.getElementById('rightShift').className).indexOf('active') == -1) {
-					document.getElementById('leftShift').classList.add('active');
-					document.getElementById('rightShift').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('leftShift').classList.remove('active');
-					document.getElementById('rightShift').classList.remove('active');
-					shiftOff();
-				};
+				shiftOnOff = true;
+				document.getElementById('leftShift').classList.add('active');
+				document.getElementById('rightShift').classList.add('active');
+				shiftOn();
 				break;
 			case 'comma':
 				charToAdd = ',';
@@ -707,7 +746,7 @@ function clickButton(buttonId) { //onscreen clicks
 			    var caretPos = txtarea.selectionEnd;
 			    if (txtarea.selectionStart != caretPos){
 			    	deselect();
-			    	intKorLetter = '';
+			    	intKorLetter = [];
 			    }
 			    txtarea.selectionStart = caretPos-1;
 			    txtarea.selectionEnd = caretPos-1;
@@ -718,7 +757,7 @@ function clickButton(buttonId) { //onscreen clicks
 			    var caretPos = txtarea.selectionEnd;
 			    if (txtarea.selectionStart != caretPos){
 			    	deselect();
-			    	intKorLetter = '';
+			    	intKorLetter = [];
 			    } else {
 			    	txtarea.selectionStart = caretPos+1;
 			    	txtarea.selectionEnd = caretPos+1;
@@ -889,7 +928,7 @@ function clickButton(buttonId) { //onscreen clicks
 					break;
 			}
 		};
-	} else if (((document.getElementById('capsLock').className).indexOf('active') > -1) || ((document.getElementById('leftShift').className).indexOf('active') > -1)) {
+	} else if (capsLockOnOff === true || shiftOnOff === true) {
 		switch(buttonId){ //non-alpha chars with shift/caps
 			case 'tilda':
 				charToAdd = '~';
@@ -946,13 +985,9 @@ function clickButton(buttonId) { //onscreen clicks
 				charToAdd = '|';
 				break;
 			case 'capsLock':
-				if ((document.getElementById('capsLock').className).indexOf('active') == -1) {
-					document.getElementById('capsLock').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('capsLock').classList.remove('active');
-					shiftOff();
-				};
+				capsLockOnOff = false;
+				document.getElementById('capsLock').classList.remove('active');
+				shiftOff();
 				break;
 			case 'semicolon':
 				charToAdd = ':';
@@ -967,26 +1002,15 @@ function clickButton(buttonId) { //onscreen clicks
 				charToAdd = '\n';
 				break;
 			case 'leftShift':
-				if ((document.getElementById('leftShift').className).indexOf('active') == -1) {
-					document.getElementById('leftShift').classList.add('active');
-					document.getElementById('rightShift').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('leftShift').classList.remove('active');
-					document.getElementById('rightShift').classList.remove('active');
-					shiftOff();
-				};
-				break;
+				shiftOnOff = false;
+				document.getElementById('leftShift').classList.remove('active');
+				document.getElementById('rightShift').classList.remove('active');
+				shiftOff();
 			case 'rightShift':
-				if ((document.getElementById('rightShift').className).indexOf('active') == -1) {
-					document.getElementById('leftShift').classList.add('active');
-					document.getElementById('rightShift').classList.add('active');
-					shiftOn();
-				} else {
-					document.getElementById('leftShift').classList.remove('active');
-					document.getElementById('rightShift').classList.remove('active');
-					shiftOff();
-				};
+				shiftOnOff = false;
+				document.getElementById('leftShift').classList.remove('active');
+				document.getElementById('rightShift').classList.remove('active');
+				shiftOff();
 				break;
 			case 'comma':
 				charToAdd = '<';
@@ -1104,7 +1128,7 @@ function clickButton(buttonId) { //onscreen clicks
 			    var caretPos = txtarea.selectionEnd;
 			    if (txtarea.selectionStart != caretPos){
 			    	deselect();
-			    	intKorLetter = '';
+			    	intKorLetter = [];
 			    }
 			    txtarea.selectionStart = caretPos-1;
 			    txtarea.selectionEnd = caretPos-1;
@@ -1115,7 +1139,7 @@ function clickButton(buttonId) { //onscreen clicks
 			    var caretPos = txtarea.selectionEnd;
 			    if (txtarea.selectionStart != caretPos){
 			    	deselect();
-			    	intKorLetter = '';
+			    	intKorLetter = [];
 			    } else {
 			    	txtarea.selectionStart = caretPos+1;
 			    	txtarea.selectionEnd = caretPos+1;
@@ -1292,6 +1316,7 @@ function clickButton(buttonId) { //onscreen clicks
 		(charToAdd.charCodeAt(0) >= 186 && charToAdd.charCodeAt(0) <= 191) || //some symbols
 		(charToAdd.charCodeAt(0) == 219 || charToAdd.charCodeAt(0) == 222) //more symbols
 		) {
+		deselect();
 		insertAtCaret(charToAdd);
 	} else if (charToAdd != '') {
 		addLetterToChar(charToAdd);
