@@ -1,1 +1,1 @@
-Unfinished on-screen keyboard with in-browser text editor
+On-screen keyboard with in-browser text editor
